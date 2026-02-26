@@ -6,14 +6,17 @@ clear variables
 close all
 
 script_dir = fileparts(mfilename('fullpath'));
+results_dir = fullfile(script_dir, 'Results');
 addpath(fullfile(script_dir, 'ngpca'), fullfile(script_dir, 'data'));
 
 % Reproducibility
 rng(0)
 
 %% Load DistGen CSV data
-% Default path points to GeomDiagnostics.jl/outputs/samples.csv
-csv_path = fullfile(script_dir, '..', 'GeomDiagnostics.jl', 'outputs', 'banana_samples.csv');
+% Default path points to GeomDiagnostics.jl/outputs/<samples.csv>
+
+sample_name = "banana_samples";
+csv_path = fullfile(script_dir, '..', 'GeomDiagnostics.jl', 'outputs', sample_name + ".csv");
 if ~isfile(csv_path)
     error('CSV file not found at: %s', csv_path);
 end
@@ -28,6 +31,23 @@ ngpca = NGPCA('softhard', 1);
 numUnits = 15;
 ngpca = init_units(ngpca, data, numUnits, 'iterations', 20000, 'PCADimensionality', 2);
 ngpca = fit_multiple(ngpca, data);
+
+
+%% Save ngpca object to json file
+if isfolder(results_dir) == false
+    mkdir(results_dir);
+end
+
+%% TODO clean this stuff up
+json_ngpca = ngpca_to_json(ngpca, {'data'});
+unit_file = fullfile(results_dir, "unit_" + sample_name + ".json");
+fid = fopen(unit_file, 'w');
+if fid < 0 
+    error("Unable to open " + unit_file + " for writing");
+end
+fprintf(fid, '%s', json_ngpca);
+fclose(fid);
+
 
 %% Visualization
 figure;
